@@ -38,7 +38,7 @@ You will need to write a constructor function as follows:
         , pets = pets
         }
 
-_Note:_ it is _important_ that the type annotation does not constrain the types of the arguments
+**Note:** it is _important_ that the type annotation does not constrain the types of the arguments
 passed into this constructor function. That is part of the secret of how this package works its
 magic!
 
