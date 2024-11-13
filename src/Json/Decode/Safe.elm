@@ -138,14 +138,6 @@ field fieldName _ fieldValueDecoder (SafeDecoder builder) =
             |> endRecord
 
 -}
-endRecord :
-    SafeDecoder
-        { recordType : recordType
-        , expectedFieldOrder : expectedFieldOrder
-        , gotFieldOrder : expectedFieldOrder -> Bool
-        , totalFieldCount : totalFieldCount
-        }
-        recordType
-    -> JD.Decoder recordType
+endRecord : SafeDecoder safety recordType -> JD.Decoder recordType
 endRecord (SafeDecoder builder) =
     builder
