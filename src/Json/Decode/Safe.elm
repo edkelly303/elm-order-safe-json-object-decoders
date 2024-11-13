@@ -1,16 +1,23 @@
 module Json.Decode.Safe exposing
-    ( record, field, endRecord
+    ( SafeDecoder
+    , record, field, endRecord
     , Zero, OnePlus
     )
 
 {-|
 
+@docs SafeDecoder
 @docs record, field, endRecord
 @docs Zero, OnePlus
 
 -}
 
 import Json.Decode as JD
+
+
+{-| -}
+type SafeDecoder safety a
+    = SafeDecoder (JD.Decoder a)
 
 
 {-| Used for type safety.
@@ -63,19 +70,16 @@ record :
     constructor
     -> validator
     ->
-        JD.Decoder
+        SafeDecoder
             { recordType : constructor
             , expectedFieldOrder : validator
-            , totalFieldCount : Zero
             , gotFieldOrder : a -> Bool
+            , totalFieldCount : Zero
             }
-record constructor validator =
-    JD.succeed
-        { recordType = constructor
-        , expectedFieldOrder = validator
-        , totalFieldCount = Zero
-        , gotFieldOrder = always True
-        }
+            constructor
+record constructor _ =
+    JD.succeed constructor
+        |> SafeDecoder
 
 
 {-| Add a field to a record decoder.
@@ -96,32 +100,29 @@ field :
     -> (expectedFieldOrder -> totalFieldCount)
     -> JD.Decoder fieldValue
     ->
-        JD.Decoder
+        SafeDecoder
             { expectedFieldOrder : totalFieldCount -> nextValidator
-            , gotFieldOrder : expectedFieldOrder -> Bool
             , recordType : fieldValue -> nextConstructor
+            , gotFieldOrder : expectedFieldOrder -> Bool
             , totalFieldCount : totalFieldCount
             }
+            (fieldValue -> nextConstructor)
     ->
-        JD.Decoder
+        SafeDecoder
             { expectedFieldOrder : nextValidator
-            , gotFieldOrder : expectedFieldOrder -> Bool
             , recordType : nextConstructor
+            , gotFieldOrder : expectedFieldOrder -> Bool
             , totalFieldCount : OnePlus totalFieldCount
             }
-field fieldName getField fieldValueDecoder builder =
+            nextConstructor
+field fieldName _ fieldValueDecoder (SafeDecoder builder) =
     JD.map2
-        (\{ recordType, expectedFieldOrder, totalFieldCount } fieldValue ->
-            { recordType = recordType fieldValue
-            , expectedFieldOrder = expectedFieldOrder totalFieldCount
-            , totalFieldCount = OnePlus totalFieldCount
-            , gotFieldOrder =
-                \checkOutput ->
-                    getField checkOutput == totalFieldCount
-            }
+        (\recordType fieldValue ->
+            recordType fieldValue
         )
         builder
         (JD.field fieldName fieldValueDecoder)
+        |> SafeDecoder
 
 
 {-| Finalise the definition of a record decoder.
@@ -138,12 +139,13 @@ field fieldName getField fieldValueDecoder builder =
 
 -}
 endRecord :
-    JD.Decoder
+    SafeDecoder
         { recordType : recordType
         , expectedFieldOrder : expectedFieldOrder
         , gotFieldOrder : expectedFieldOrder -> Bool
         , totalFieldCount : totalFieldCount
         }
+        recordType
     -> JD.Decoder recordType
-endRecord builder =
-    JD.map .recordType builder
+endRecord (SafeDecoder builder) =
+    builder
