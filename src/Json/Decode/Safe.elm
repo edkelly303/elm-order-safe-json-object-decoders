@@ -73,7 +73,7 @@ record :
         SafeDecoder
             { recordType : constructor
             , expectedFieldOrder : validator
-            , gotFieldOrder : a -> Bool
+            , gotFieldOrder : a
             , totalFieldCount : Zero
             }
             constructor
@@ -103,7 +103,7 @@ field :
         SafeDecoder
             { expectedFieldOrder : totalFieldCount -> nextValidator
             , recordType : fieldValue -> nextConstructor
-            , gotFieldOrder : expectedFieldOrder -> Bool
+            , gotFieldOrder : expectedFieldOrder
             , totalFieldCount : totalFieldCount
             }
             (fieldValue -> nextConstructor)
@@ -111,7 +111,7 @@ field :
         SafeDecoder
             { expectedFieldOrder : nextValidator
             , recordType : nextConstructor
-            , gotFieldOrder : expectedFieldOrder -> Bool
+            , gotFieldOrder : expectedFieldOrder
             , totalFieldCount : OnePlus totalFieldCount
             }
             nextConstructor
@@ -142,7 +142,7 @@ endRecord :
     SafeDecoder
         { safety
             | expectedFieldOrder : expectedFieldOrder
-            , gotFieldOrder : expectedFieldOrder -> Bool
+            , gotFieldOrder : expectedFieldOrder
         }
         recordType
     -> JD.Decoder recordType
