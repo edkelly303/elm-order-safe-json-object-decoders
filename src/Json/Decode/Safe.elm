@@ -1,18 +1,26 @@
-module Json.Decode.Safe exposing (record, field, endRecord)
+module Json.Decode.Safe exposing
+    ( record, field, endRecord
+    , Zero, OnePlus
+    )
 
 {-|
 
 @docs record, field, endRecord
+@docs Zero, OnePlus
 
 -}
 
 import Json.Decode as JD
 
 
+{-| Used for type safety.
+-}
 type Zero
     = Zero
 
 
+{-| Used for type safety.
+-}
 type OnePlus a
     = OnePlus a
 
