@@ -29,7 +29,7 @@ type alias User =
     }
 ```
 
-And we write a decoder using `elm/json` and `NoRedInk/elm-json-decode-pipeline` 
+And we write a decoder using the `elm/json` and `NoRedInk/elm-json-decode-pipeline` 
 packages:
 
 ```elm
@@ -45,27 +45,31 @@ userDecoder =
 
 Uh oh! Did you spot the mistake?
 
-The implicit constructor `User` requires us to decode the `firstName` field first, and the `lastName` field second - but we've done it the wrong way around. Because both fields will decode successfully as `String`s,
-there's no way for Elm to detect that we've blundered, so our user will be forever known by the stupid 
+The implicit constructor `User` requires us to decode the `firstName` field first, 
+and the `lastName` field second - but we've done it the wrong way around. 
+
+Because both fields will decode successfully as `String`s, there's no way for Elm 
+to detect that we've blundered, so our user will be forever known by the stupid 
 name "Kelly Ed", instead of his rightful and extremely cool name, "Ed Kelly".
 
 ## So there's no way for Elm to detect this... Ok, move along, nothing to see here.
 
 Hang on, hold my beer.
 
-Right, there actually is a way for Elm to detect this, and that's what this package does.
+Right, there actually _is_ a way for Elm to detect this, and that's what this package does.
 
-If you write a similarly broken decoder using this package, you'll get a compiler error like this:
+If you write a similarly broken decoder using this package, you'll get a compiler error 
+like this:
 
 ```code
 This function cannot handle the argument sent through the (|>) pipe:
 
-118|     record userConstructor userConstructor
-119|         |> field "lastName" .lastName JD.string
-120|         |> field "firstName" .firstName JD.string
-121|         |> field "pets" .pets JD.int
-122|         |> end
-                ^^^
+118|     JDS.record userConstructor userConstructor
+119|         |> JDS.field "lastName" .lastName JD.string
+120|         |> JDS.field "firstName" .firstName JD.string
+121|         |> JDS.field "pets" .pets JD.int
+122|         |> JDS.endRecord
+                ^^^^^^^^^^^^^
 The argument is:
 
     JD.Decoder
@@ -89,7 +93,7 @@ If you know about [Peano numbers](https://en.wikipedia.org/wiki/Peano_axioms), t
 already; if not, I can explain!
 
 Look at the `expectedFieldOrder` field:
-* `firstName` should be the first field we pass to our constructor function. As we are programmers, let's call it "field zero". So we expect it to have a field order of `Zero` = 0. 
+* `firstName` should be the first field we pass to our constructor function. As we are programmers and we love zero-indexing, let's call it "field zero". So we expect it to have a field order of `Zero` = 0. 
 * `lastName` should be "field one". So it should have a field order of `OnePlus Zero` = 1.
 * `pets` should be "field two". So it should have a field order of `OnePlus (OnePlus Zero)` = 2.
 
@@ -97,6 +101,9 @@ Now look at the `gotFieldOrder` field. Due to mistake we made in writing the dec
 * `firstName` actually got a field order of `OnePlus Zero` = 1.
 * `lastName` actually got a field order of `Zero` = 0.
 * Only `pets` got the field order we expected, `OnePlus (OnePlus Zero)` = 2.
+
+So we can see fairly easily(?) that the problem is that we've got the `firstName` and `lastName` fields the wrong
+way around, and we should either edit the code for our decoder or for our constructor to fix this.
 
 ## Sounds neat! How do I use it?
 
