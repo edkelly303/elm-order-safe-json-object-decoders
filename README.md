@@ -160,20 +160,20 @@ record constructor validator =
 
 field :
     String
-    -> (recordToCheck -> totalFieldCount)
+    -> (expectedFieldOrder -> totalFieldCount)
     -> JD.Decoder fieldValue
     ->
         JD.Decoder
-            { expectedFieldOrder : totalFieldCount -> nextCheckCtor
-            , gotFieldOrder : recordToCheck -> Bool
-            , recordType : fieldValue -> nextRecordCtor
+            { expectedFieldOrder : totalFieldCount -> nextValidator
+            , gotFieldOrder : expectedFieldOrder -> Bool
+            , recordType : fieldValue -> nextConstructor
             , totalFieldCount : totalFieldCount
             }
     ->
         JD.Decoder
-            { expectedFieldOrder : nextCheckCtor
-            , gotFieldOrder : recordToCheck -> Bool
-            , recordType : nextRecordCtor
+            { expectedFieldOrder : nextValidator
+            , gotFieldOrder : expectedFieldOrder -> Bool
+            , recordType : nextConstructor
             , totalFieldCount : OnePlus totalFieldCount
             }
 field fieldName getField fieldValueDecoder builder =
