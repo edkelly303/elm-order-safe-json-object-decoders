@@ -1,0 +1,45 @@
+-- TYPE MISMATCH --------------------------------------------- MissingFields.elm
+
+This function cannot handle the argument sent through the (|>) pipe:
+
+ 9|     JDS.record User userConstructor
+10|         |> JDS.field "firstName" .firstName JD.string
+11|         |> JDS.field "lastName" .lastName JD.string
+12|         |> JDS.endRecord
+               ^^^^^^^^^^^^^
+The argument is:
+
+    JDS.SafeDecoder
+        { expectedFieldOrder :
+              c
+              -> { firstName : JDS.Zero
+                 , lastName : JDS.OnePlus JDS.Zero
+                 , pets : c
+                 }
+        , gotFieldOrder :
+              { a | firstName : JDS.Zero, lastName : JDS.OnePlus JDS.Zero }
+        , recordType : Int -> User
+        , totalFieldCount : JDS.OnePlus (JDS.OnePlus JDS.Zero)
+        }
+        (Int -> User)
+
+But (|>) is piping it to a function that expects:
+
+    JDS.SafeDecoder
+        { expectedFieldOrder :
+              c
+              -> { firstName : JDS.Zero
+                 , lastName : JDS.OnePlus JDS.Zero
+                 , pets : c
+                 }
+        , gotFieldOrder :
+              c
+              -> { firstName : JDS.Zero
+                 , lastName : JDS.OnePlus JDS.Zero
+                 , pets : c
+                 }
+        , recordType : Int -> User
+        , totalFieldCount : JDS.OnePlus (JDS.OnePlus JDS.Zero)
+        }
+        (Int -> User)
+

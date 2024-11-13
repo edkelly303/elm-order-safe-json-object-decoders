@@ -1,0 +1,46 @@
+-- TYPE MISMATCH --------------------------------------- IncorrectFieldOrder.elm
+
+This function cannot handle the argument sent through the (|>) pipe:
+
+ 9|     JDS.record User userConstructor
+10|         |> JDS.field "lastName" .lastName JD.string
+11|         |> JDS.field "firstName" .firstName JD.string
+12|         |> JDS.field "pets" .pets JD.int
+13|         |> JDS.endRecord
+               ^^^^^^^^^^^^^
+The argument is:
+
+    JDS.SafeDecoder
+        { expectedFieldOrder :
+              { firstName : JDS.Zero
+              , lastName : JDS.OnePlus JDS.Zero
+              , pets : JDS.OnePlus (JDS.OnePlus JDS.Zero)
+              }
+        , gotFieldOrder :
+              { firstName : JDS.OnePlus JDS.Zero
+              , lastName : JDS.Zero
+              , pets : JDS.OnePlus (JDS.OnePlus JDS.Zero)
+              }
+        , recordType : User
+        , totalFieldCount : JDS.OnePlus (JDS.OnePlus (JDS.OnePlus JDS.Zero))
+        }
+        User
+
+But (|>) is piping it to a function that expects:
+
+    JDS.SafeDecoder
+        { expectedFieldOrder :
+              { firstName : JDS.Zero
+              , lastName : JDS.OnePlus JDS.Zero
+              , pets : JDS.OnePlus (JDS.OnePlus JDS.Zero)
+              }
+        , gotFieldOrder :
+              { firstName : JDS.Zero
+              , lastName : JDS.OnePlus JDS.Zero
+              , pets : JDS.OnePlus (JDS.OnePlus JDS.Zero)
+              }
+        , recordType : User
+        , totalFieldCount : JDS.OnePlus (JDS.OnePlus (JDS.OnePlus JDS.Zero))
+        }
+        User
+
