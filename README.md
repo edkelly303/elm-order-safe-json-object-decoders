@@ -200,9 +200,6 @@ end :
         }
     -> JD.Decoder recordType
 end builder =
-    builder
-        |> JD.andThen
-            (\{ recordType } ->
-                JD.succeed recordType
-            )
+    JD.map .recordType builder
+            
 ```
