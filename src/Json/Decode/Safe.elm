@@ -23,13 +23,13 @@ type SafeDecoder safety a
 {-| Used for type safety.
 -}
 type Zero
-    = Zero
+    = Zero Never
 
 
 {-| Used for type safety.
 -}
 type OnePlus a
-    = OnePlus a
+    = OnePlus Never
 
 
 {-| Start constructing a record decoder.
