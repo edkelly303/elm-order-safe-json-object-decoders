@@ -1,19 +1,19 @@
 # elm-order-safe-json-object-decoders
+
 Decode JSON objects into Elm records without the risk of field order errors
 
 ```elm
 module Main exposing (main)
 
-import Browser
 import Html exposing (Html)
-import Html.Events
 import Json.Decode as JD
+import Json.Decode.Safe as JDS
 
 
 
 {- Let's say we want to decode this: -}
 
-
+userJson : String
 userJson =
     """
 {
@@ -38,7 +38,7 @@ type alias User =
 
 {- We can show our results here: -}
 
-
+main : Html msg
 main =
     Html.div []
         [ Html.strong [] 
@@ -94,112 +94,34 @@ userConstructor firstName lastName pets =
    * Each time we call our `field` function, we pass in a record
    accessor function in addition to the JSON field name and decoder.
 
-   * We end our pipeline with a function called `end`.
+   * We end our pipeline with a function called `endRecord`.
 
    Here's an example of a decoder:
 -}
 
 
+userDecoder : JD.Decoder User
 userDecoder =
-    record userConstructor userConstructor
-        |> field "firstName" .firstName JD.string
-        |> field "lastName" .lastName JD.string
-        |> field "pets" .pets JD.int
-        |> end
+    JDS.record userConstructor userConstructor
+        |> JDS.field "firstName" .firstName JD.string
+        |> JDS.field "lastName" .lastName JD.string
+        |> JDS.field "pets" .pets JD.int
+        |> JDS.endRecord
 
 
 
 {- Here's an example of a decoder that will fail at compile time,
    because we've got the `firstName` and `lastName` fields in the wrong
    order.
-
-   (Comment out the definition below to remove the compiler error)
 -}
---{-
 
 
+userDecoder : JD.Decoder User
 brokenUserDecoder =
-    record userConstructor userConstructor
-        |> field "lastName" .lastName JD.string
-        |> field "firstName" .firstName JD.string
-        |> field "pets" .pets JD.int
-        |> end
-
-
-
----}
--- Below is our library code
-
-
-type Zero
-    = Zero
-
-
-type OnePlus a
-    = OnePlus a
-
-
-record :
-    constructor
-    -> validator
-    ->
-        JD.Decoder
-            { recordType : constructor
-            , expectedFieldOrder : validator
-            , totalFieldCount : Zero
-            , gotFieldOrder : a -> Bool
-            }
-record constructor validator =
-    JD.succeed
-        { recordType = constructor
-        , expectedFieldOrder = validator
-        , totalFieldCount = Zero
-        , gotFieldOrder = always True
-        }
-
-
-field :
-    String
-    -> (expectedFieldOrder -> totalFieldCount)
-    -> JD.Decoder fieldValue
-    ->
-        JD.Decoder
-            { expectedFieldOrder : totalFieldCount -> nextValidator
-            , gotFieldOrder : expectedFieldOrder -> Bool
-            , recordType : fieldValue -> nextConstructor
-            , totalFieldCount : totalFieldCount
-            }
-    ->
-        JD.Decoder
-            { expectedFieldOrder : nextValidator
-            , gotFieldOrder : expectedFieldOrder -> Bool
-            , recordType : nextConstructor
-            , totalFieldCount : OnePlus totalFieldCount
-            }
-field fieldName getField fieldValueDecoder builder =
-    JD.map2
-        (\{ recordType, expectedFieldOrder, totalFieldCount } fieldValue ->
-            { recordType = recordType fieldValue
-            , expectedFieldOrder = expectedFieldOrder totalFieldCount
-            , totalFieldCount = OnePlus totalFieldCount
-            , gotFieldOrder =
-                \checkOutput ->
-                    getField checkOutput == totalFieldCount
-            }
-        )
-        builder
-        (JD.field fieldName fieldValueDecoder)
-
-
-end :
-    JD.Decoder
-        { recordType : recordType
-        , expectedFieldOrder : expectedFieldOrder
-        , gotFieldOrder : expectedFieldOrder -> Bool
-        , totalFieldCount : totalFieldCount
-        }
-    -> JD.Decoder recordType
-end builder =
-    JD.map .recordType builder
+    JDS.record userConstructor userConstructor
+        |> JDS.field "lastName" .lastName JD.string
+        |> JDS.field "firstName" .firstName JD.string
+        |> JDS.field "pets" .pets JD.int
+        |> JDS.endRecord
             
 ```
