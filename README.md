@@ -1,6 +1,10 @@
 # elm-order-safe-json-object-decoders
 
-Decode JSON objects into Elm records without the risk of field order errors
+## What does this do?
+
+It decodes JSON objects into Elm records without the risk of field order errors.
+
+## What's actually even the problem?
 
 Let's say we want to decode this:
 ```elm
@@ -15,9 +19,7 @@ userJson =
 """
 ```
 
-
 Into this:
-
 
 ```elm
 type alias User =
@@ -27,10 +29,8 @@ type alias User =
     }
 ```
 
-
-The API for our decoders is slightly different from the API of the
-`NoRedInk/elm-json-decode-pipeline` package, which would be something
-like this:
+And we write a decoder using `elm/json` and `NoRedInk/elm-json-decode-pipeline` 
+packages:
 
 ```elm
 import Json.Decode as JD
@@ -38,10 +38,72 @@ import Json.Decode.Pipeline as JDP
 
 userDecoder = 
     JD.succeed User
-        |> JDP.field "firstName" JD.string
         |> JDP.field "lastName" JD.string
+        |> JDP.field "firstName" JD.string
         |> JDP.field "pets" JD.int
 ```
+
+Uh oh! Did you spot the mistake?
+
+The implicit constructor `User` requires us to decode the `firstName` field first, and the `lastName` field second - but we've done it the wrong way around. Because both fields will decode successfully as `String`s,
+there's no way for Elm to detect that we've blundered, so our user will be forever known by the stupid 
+name "Kelly Ed", instead of his rightful and extremely cool name, "Ed Kelly".
+
+## So there's no way for Elm to detect this... Ok, move along, nothing to see here.
+
+Hang on, hold my beer.
+
+Right, there actually is a way for Elm to detect this, and that's what this package does.
+
+If you write a similarly broken decoder using this package, you'll get a compiler error like this:
+
+```code
+This function cannot handle the argument sent through the (|>) pipe:
+
+118|     record userConstructor userConstructor
+119|         |> field "lastName" .lastName JD.string
+120|         |> field "firstName" .firstName JD.string
+121|         |> field "pets" .pets JD.int
+122|         |> end
+                ^^^
+The argument is:
+
+    JD.Decoder
+        { expectedFieldOrder :
+              { firstName : Zero
+              , lastName : OnePlus Zero
+              , pets : OnePlus (OnePlus Zero)
+              }
+        , gotFieldOrder :
+              { firstName : OnePlus Zero
+              , lastName : Zero
+              , pets : OnePlus (OnePlus Zero)
+              }
+              -> Bool
+        , recordType : { firstName : String, lastName : String, pets : Int }
+        , totalFieldCount : OnePlus (OnePlus (OnePlus Zero))
+        }
+```
+
+If you know about [Peano numbers](https://en.wikipedia.org/wiki/Peano_axioms), this might be clear to you
+already; if not, I can explain!
+
+Look at the `expectedFieldOrder` field:
+* `firstName` should be the first field we pass to our constructor function. As we are programmers, let's call it "field zero". So we expect it to have a field order of `Zero` = 0. 
+* `lastName` should be "field one". So it should have a field order of `OnePlus Zero` = 1.
+* `pets` should be "field two". So it should have a field order of `OnePlus (OnePlus Zero)` = 2.
+
+Now look at the `gotFieldOrder` field. Due to mistake we made in writing the decoder:
+* `firstName` actually got a field order of `OnePlus Zero` = 1.
+* `lastName` actually got a field order of `Zero` = 0.
+* Only `pets` got the field order we expected, `OnePlus (OnePlus Zero)` = 2.
+
+## Sounds neat! How do I use it?
+
+The API for our decoders is slightly different from the API of the
+`NoRedInk/elm-json-decode-pipeline` package.
+
+### Polymorphic constructors
 
 The biggest and most important difference is that we _don't_ use the `User` 
 constructor in our decoder. Instead, we must define a constructor function 
@@ -63,7 +125,9 @@ userConstructor firstName lastName pets =
     }
 ```
 
-Here are the other API differences:
+### API differences 
+
+Here are the other API differences from `NoRedInk/elm-json-decode-pipeline`:
 
 * We open our decoding pipeline with a function called `record` instead
   of `succeed`. 
@@ -75,6 +139,8 @@ Here are the other API differences:
   accessor function in addition to the JSON field name and decoder.
 
 * We end our pipeline with a function called `endRecord`.
+
+## And what does that look like in practice?
 
 Here's an example of a decoder:
 
@@ -91,13 +157,12 @@ userDecoder =
         |> JDS.endRecord
 ```
 
-
 Here's an example of a decoder that will fail at compile time,
 because we've got the `firstName` and `lastName` fields in the wrong
 order.
 
 ```elm
-userDecoder : JD.Decoder User
+brokenUserDecoder : JD.Decoder User
 brokenUserDecoder =
     JDS.record userConstructor userConstructor
         |> JDS.field "lastName" .lastName JD.string
@@ -105,3 +170,9 @@ brokenUserDecoder =
         |> JDS.field "pets" .pets JD.int
         |> JDS.endRecord
 ```
+
+## How does it work?
+
+My friend, that is a story for another day! Suffice to say, it's completely 
+type-safe, it doesn't rely on any evil JavaScript FFI or other weirdness, 
+and it won't crash.
