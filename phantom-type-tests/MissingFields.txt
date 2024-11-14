@@ -2,44 +2,42 @@
 
 This function cannot handle the argument sent through the (|>) pipe:
 
- 9|     JDS.record User userConstructor
+ 9|     JDS.record userConstructor userConstructor
 10|         |> JDS.field "firstName" .firstName JD.string
 11|         |> JDS.field "lastName" .lastName JD.string
 12|         |> JDS.endRecord
                ^^^^^^^^^^^^^
 The argument is:
 
-    JDS.SafeDecoder
+    JDS.Builder
         { expectedFieldOrder :
-              c
+              c1
               -> { firstName : JDS.Zero
                  , lastName : JDS.OnePlus JDS.Zero
-                 , pets : c
+                 , pets : c1
                  }
         , gotFieldOrder :
               { a | firstName : JDS.Zero, lastName : JDS.OnePlus JDS.Zero }
-        , recordType : Int -> User
         , totalFieldCount : JDS.OnePlus (JDS.OnePlus JDS.Zero)
         }
-        (Int -> User)
+        (c -> { firstName : String, lastName : String, pets : c })
 
 But (|>) is piping it to a function that expects:
 
-    JDS.SafeDecoder
+    JDS.Builder
         { expectedFieldOrder :
-              c
+              c1
               -> { firstName : JDS.Zero
                  , lastName : JDS.OnePlus JDS.Zero
-                 , pets : c
+                 , pets : c1
                  }
         , gotFieldOrder :
-              c
+              c1
               -> { firstName : JDS.Zero
                  , lastName : JDS.OnePlus JDS.Zero
-                 , pets : c
+                 , pets : c1
                  }
-        , recordType : Int -> User
         , totalFieldCount : JDS.OnePlus (JDS.OnePlus JDS.Zero)
         }
-        (Int -> User)
+        (c -> { firstName : String, lastName : String, pets : c })
 

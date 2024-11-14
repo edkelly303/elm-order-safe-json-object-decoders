@@ -29,8 +29,8 @@ type alias User =
     }
 ```
 
-And we write a decoder using the `elm/json` and `NoRedInk/elm-json-decode-pipeline` 
-packages:
+And we write a decoder using the `elm/json` and 
+`NoRedInk/elm-json-decode-pipeline` packages:
 
 ```elm
 import Json.Decode as JD
@@ -45,65 +45,75 @@ userDecoder =
 
 Uh oh! Did you spot the mistake?
 
-The implicit constructor `User` requires us to decode the `firstName` field first, 
-and the `lastName` field second - but we've done it the wrong way around. 
+The implicit constructor `User` requires us to decode the `firstName` field 
+first, and the `lastName` field second - but we've done it the wrong way around. 
 
-Because both fields will decode successfully as `String`s, there's no way for Elm 
-to detect that we've blundered, so our user will be forever known by the stupid 
-name "Kelly Ed", instead of his rightful and extremely cool name, "Ed Kelly".
+Because both fields will decode successfully as `String`s, there's no way for 
+Elm to detect that we've blundered, so our user will be forever known by the 
+stupid name "Kelly Ed", instead of his rightful and extremely cool name, "Ed 
+Kelly".
 
 ## So there's no way for Elm to detect this... Ok, move along, nothing to see here.
 
 Hang on, hold my beer.
 
-Right, there actually _is_ a way for Elm to detect this, and that's what this package does.
+Right, there actually _is_ a way for Elm to detect this, and that's what this 
+package does.
 
-If you write a similarly broken decoder using this package, you'll get a compiler error 
-like this:
+If you write a similarly broken decoder using this package, you'll get a 
+compiler error like this:
 
 ```code
+-- TYPE MISMATCH --------------------------------------- IncorrectFieldOrder.elm
+
 This function cannot handle the argument sent through the (|>) pipe:
 
-118|     JDS.record userConstructor userConstructor
-119|         |> JDS.field "lastName" .lastName JD.string
-120|         |> JDS.field "firstName" .firstName JD.string
-121|         |> JDS.field "pets" .pets JD.int
-122|         |> JDS.endRecord
-                ^^^^^^^^^^^^^
+ 9|     JDS.record userConstructor userConstructor
+10|         |> JDS.field "lastName" .lastName JD.string
+11|         |> JDS.field "firstName" .firstName JD.string
+12|         |> JDS.field "pets" .pets JD.int
+13|         |> JDS.endRecord
+               ^^^^^^^^^^^^^
 The argument is:
 
-    JD.Decoder
+    JDS.Builder
         { expectedFieldOrder :
-              { firstName : Zero
-              , lastName : OnePlus Zero
-              , pets : OnePlus (OnePlus Zero)
+              { firstName : JDS.Zero
+              , lastName : JDS.OnePlus JDS.Zero
+              , pets : JDS.OnePlus (JDS.OnePlus JDS.Zero)
               }
         , gotFieldOrder :
-              { firstName : OnePlus Zero
-              , lastName : Zero
-              , pets : OnePlus (OnePlus Zero)
+              { firstName : JDS.OnePlus JDS.Zero
+              , lastName : JDS.Zero
+              , pets : JDS.OnePlus (JDS.OnePlus JDS.Zero)
               }
-              -> Bool
-        , recordType : { firstName : String, lastName : String, pets : Int }
-        , totalFieldCount : OnePlus (OnePlus (OnePlus Zero))
+        , totalFieldCount : JDS.OnePlus (JDS.OnePlus (JDS.OnePlus JDS.Zero))
         }
+        { firstName : String, lastName : String, pets : Int }
 ```
 
-If you know about [Peano numbers](https://en.wikipedia.org/wiki/Peano_axioms), this might be clear to you
+If you know about [Peano numbers](https://en.wikipedia.org/wiki/Peano_axioms), 
+this might be clear to you
 already; if not, I can explain!
 
 Look at the `expectedFieldOrder` field:
-* `firstName` should be the first field we pass to our constructor function. As we are programmers and we love zero-indexing, let's call it "field zero". So we expect it to have a field order of `Zero` = 0. 
-* `lastName` should be "field one". So it should have a field order of `OnePlus Zero` = 1.
-* `pets` should be "field two". So it should have a field order of `OnePlus (OnePlus Zero)` = 2.
+* `firstName` should be the first field we pass to our constructor function. As 
+we are programmers and we love zero-indexing, let's call it "field zero". So we 
+expect it to have a field order of `Zero` = 0. 
+* `lastName` should be "field one". So it should have a field order of 
+`OnePlus Zero` = 1.
+* `pets` should be "field two". So it should have a field order of 
+`OnePlus (OnePlus Zero)` = 2.
 
-Now look at the `gotFieldOrder` field. Due to mistake we made in writing the decoder:
+Now look at the `gotFieldOrder` field. Due to mistake we made in writing the 
+decoder:
 * `firstName` actually got a field order of `OnePlus Zero` = 1.
 * `lastName` actually got a field order of `Zero` = 0.
 * Only `pets` got the field order we expected, `OnePlus (OnePlus Zero)` = 2.
 
-So we can see fairly easily(?) that the problem is that we've got the `firstName` and `lastName` fields the wrong
-way around, and we should either edit the code for our decoder or for our constructor to fix this.
+So we can see fairly easily(?) that the problem is that we've got the 
+`firstName` and `lastName` fields the wrong way around, and we should either 
+edit the code for our decoder or for our constructor to fix this.
 
 ## Sounds neat! How do I use it?
 
@@ -183,3 +193,25 @@ brokenUserDecoder =
 My friend, that is a story for another day! Suffice to say, it's completely 
 type-safe, it doesn't rely on any evil JavaScript FFI or other weirdness, 
 and it won't crash.
+
+## Thanks
+
+This package came about as a kind of rolling, multi-party nerdsnipe over several 
+days on the Incremental Elm Discord. 
+
+My initial idea was for a safe decoder that would simply return `Err` at 
+runtime if the field order was incorrect. Jeroen Engels immediately spotted a
+major flaw in my implementation, and Hayleigh Thompson provided an example that 
+could crash the Elm runtime. Oops!
+
+Martin Janiczek and Leonardo Talialegne then suggested that ideally, the order 
+check would happen at compile time, which inspired me to play around with some
+type-level stuff and find a solution.
+
+Once I'd got a compile-time version working, Jeroen did something really 
+magical, showing me how almost the entire implementation could be done at the
+type level with phantom types. For good measure, he also wrote some tests and 
+shared his special script for snapshot testing.
+
+Thank you everyone for making this so much fun to work on, and especially Jeroen 
+for making this package even more brain-twisting than it was already.

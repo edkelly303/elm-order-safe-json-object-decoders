@@ -3,7 +3,7 @@
     "name": "edkelly303/elm-order-safe-json-object-decoders",
     "summary": "Decode JSON objects into Elm records without the risk of field order errors",
     "license": "BSD-3-Clause",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "exposed-modules": [
         "Json.Decode.Safe"
     ],

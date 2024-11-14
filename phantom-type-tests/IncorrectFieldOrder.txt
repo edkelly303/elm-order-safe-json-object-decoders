@@ -2,7 +2,7 @@
 
 This function cannot handle the argument sent through the (|>) pipe:
 
- 9|     JDS.record User userConstructor
+ 9|     JDS.record userConstructor userConstructor
 10|         |> JDS.field "lastName" .lastName JD.string
 11|         |> JDS.field "firstName" .firstName JD.string
 12|         |> JDS.field "pets" .pets JD.int
@@ -10,7 +10,7 @@ This function cannot handle the argument sent through the (|>) pipe:
                ^^^^^^^^^^^^^
 The argument is:
 
-    JDS.SafeDecoder
+    JDS.Builder
         { expectedFieldOrder :
               { firstName : JDS.Zero
               , lastName : JDS.OnePlus JDS.Zero
@@ -21,14 +21,13 @@ The argument is:
               , lastName : JDS.Zero
               , pets : JDS.OnePlus (JDS.OnePlus JDS.Zero)
               }
-        , recordType : User
         , totalFieldCount : JDS.OnePlus (JDS.OnePlus (JDS.OnePlus JDS.Zero))
         }
-        User
+        { firstName : String, lastName : String, pets : Int }
 
 But (|>) is piping it to a function that expects:
 
-    JDS.SafeDecoder
+    JDS.Builder
         { expectedFieldOrder :
               { firstName : JDS.Zero
               , lastName : JDS.OnePlus JDS.Zero
@@ -39,8 +38,7 @@ But (|>) is piping it to a function that expects:
               , lastName : JDS.OnePlus JDS.Zero
               , pets : JDS.OnePlus (JDS.OnePlus JDS.Zero)
               }
-        , recordType : User
         , totalFieldCount : JDS.OnePlus (JDS.OnePlus (JDS.OnePlus JDS.Zero))
         }
-        User
+        { firstName : String, lastName : String, pets : Int }
 

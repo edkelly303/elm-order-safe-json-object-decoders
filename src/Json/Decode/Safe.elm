@@ -1,26 +1,29 @@
 module Json.Decode.Safe exposing
-    ( SafeDecoder
+    ( Builder
     , record, field, endRecord
     , Zero, OnePlus
     )
 
 {-|
 
-@docs SafeDecoder
 @docs record, field, endRecord
-@docs Zero, OnePlus
+@docs Builder, Zero, OnePlus
 
 -}
 
 import Json.Decode as JD
 
 
-{-| -}
-type SafeDecoder safety a
-    = SafeDecoder (JD.Decoder a)
+{-| An intermediate data structure used to check that the decoders we are 
+creating have their fields in the correct order. A `Builder` is created by the 
+`record` function, updated by the `field` function, and finally converted into a 
+`Json.Decode.Decoder` by the `endRecord` function.
+-}
+type Builder safety a
+    = Builder (JD.Decoder a)
 
 
-{-| Used for type safety.
+{-| Used for type safety. 
 -}
 type Zero
     = Zero Never
@@ -34,7 +37,8 @@ type OnePlus a
 
 {-| Start constructing a record decoder.
 
-You will need to supply a polymorphic record constructor function as both arguments to this function.
+**⚠️ You will need to supply a polymorphic record constructor function as both 
+arguments to this function. ⚠️**
 
 For example, if you want to decode a record like this:
 
@@ -44,7 +48,8 @@ For example, if you want to decode a record like this:
         , pets : Int
         }
 
-You will need to write a constructor function as follows:
+You must **not** use the `User` constructor. Instead, you will need to write a 
+constructor function as follows:
 
     userConstructor : a -> b -> c -> { firstName : a, lastName : b, pets : c }
     userConstructor firstName lastName pets =
@@ -53,9 +58,9 @@ You will need to write a constructor function as follows:
         , pets = pets
         }
 
-**Note:** it is _important_ that the type annotation does not constrain the types of the arguments
-passed into this constructor function. That is part of the secret of how this package works its
-magic!
+**Note:** it is _important_ that the type annotation does not constrain the 
+types of the arguments passed into this constructor function. That is part of 
+the secret of how this package works its magic!
 
 Now, pass the polymorphic constructor function into `record` _twice_, like this:
 
@@ -70,16 +75,15 @@ record :
     constructor
     -> validator
     ->
-        SafeDecoder
-            { recordType : constructor
-            , expectedFieldOrder : validator
+        Builder
+            { expectedFieldOrder : validator
             , gotFieldOrder : a
             , totalFieldCount : Zero
             }
             constructor
 record constructor _ =
     JD.succeed constructor
-        |> SafeDecoder
+        |> Builder
 
 
 {-| Add a field to a record decoder.
@@ -100,32 +104,30 @@ field :
     -> (expectedFieldOrder -> totalFieldCount)
     -> JD.Decoder fieldValue
     ->
-        SafeDecoder
+        Builder
             { expectedFieldOrder : totalFieldCount -> nextValidator
-            , recordType : fieldValue -> nextConstructor
             , gotFieldOrder : expectedFieldOrder
             , totalFieldCount : totalFieldCount
             }
             (fieldValue -> nextConstructor)
     ->
-        SafeDecoder
+        Builder
             { expectedFieldOrder : nextValidator
-            , recordType : nextConstructor
             , gotFieldOrder : expectedFieldOrder
             , totalFieldCount : OnePlus totalFieldCount
             }
             nextConstructor
-field fieldName _ fieldValueDecoder (SafeDecoder builder) =
+field fieldName _ fieldValueDecoder (Builder builder) =
     JD.map2
         (\recordType fieldValue ->
             recordType fieldValue
         )
         builder
         (JD.field fieldName fieldValueDecoder)
-        |> SafeDecoder
+        |> Builder
 
 
-{-| Finalise the definition of a record decoder.
+{-| Finalise the creation of a record decoder.
 
     import Json.Decode
     import Json.Decode.Safe exposing (endRecord, field, record)
@@ -139,12 +141,12 @@ field fieldName _ fieldValueDecoder (SafeDecoder builder) =
 
 -}
 endRecord :
-    SafeDecoder
+    Builder
         { safety
             | expectedFieldOrder : expectedFieldOrder
             , gotFieldOrder : expectedFieldOrder
         }
         recordType
     -> JD.Decoder recordType
-endRecord (SafeDecoder builder) =
+endRecord (Builder builder) =
     builder

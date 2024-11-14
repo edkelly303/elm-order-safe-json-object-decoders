@@ -6,7 +6,7 @@ import Json.Decode.Safe as JDS
 
 userDecoder : JD.Decoder User
 userDecoder =
-    JDS.record User userConstructor
+    JDS.record userConstructor userConstructor
         |> JDS.field "firstName" .firstName JD.string
         |> JDS.field "lastName" .lastName JD.string
         |> JDS.endRecord
